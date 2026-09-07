@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة تقييم التدريب التعاوني</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --olive-main: #B2C5B2; 
+            --green-dark: #3A503A; 
+            --green-light: #E8F2E8; 
+            --white: #FFFFFF; 
+            --creamy: #F8F9F5; 
+            --gray-light: #E0E0E0;
+            --gold: #fbc02d;
+        }
+        * { box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+        body { margin: 0; background-color: var(--creamy); color: var(--green-dark); overflow-x: hidden; }
+
+        /* --- واجهة الدخول --- */
+        #authSection { position: fixed; width: 100%; height: 100%; background: var(--olive-main); display: flex; justify-content: center; align-items: center; z-index: 3000; }
+        .auth-card { background: var(--white); width: 420px; border-radius: 15px; border: 2px solid var(--green-dark); overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .auth-content { padding: 40px 30px; text-align: center; }
+        .auth-box { display: none; }
+        .active-box { display: block; }
+
+        input, select, textarea { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ddd; border-radius: 8px; outline-color: var(--green-dark); text-align: center; font-size: 14px; }
+        .btn-auth { width: 100%; padding: 12px; background: var(--green-dark); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 20px; transition: 0.3s; }
+        .btn-auth:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        /* --- نظام النجوم --- */
+        .star-rating { display: flex; flex-direction: row-reverse; justify-content: center; gap: 10px; margin: 15px 0; font-size: 30px; }
+        .star-rating input { display: none; }
+        .star-rating label { color: #ccc; cursor: pointer; transition: 0.3s; }
+        .star-rating label:hover, .star-rating label:hover ~ label, .star-rating input:checked ~ label { color: var(--gold); }
+
+        /* --- القائمة الجانبية --- */
+        #menuBtn { position: fixed; top: 20px; right: 20px; font-size: 30px; cursor: pointer; z-index: 2000; background: var(--green-dark); color: white; width: 50px; height: 50px; display: none; align-items: center; justify-content: center; border-radius: 8px; }
+        .sidebar { width: 280px; background: var(--green-light); position: fixed; height: 100%; border-left: 2px solid var(--olive-main); padding: 30px; z-index: 1500; right: -280px; transition: 0.4s; }
+        .sidebar.open { right: 0; }
+        .profile-img-container { width: 100px; height: 100px; margin: 0 auto 20px auto; border-radius: 50%; overflow: hidden; border: 3px solid var(--green-dark); background: white; }
+        .profile-img-container img { width: 100%; height: 100%; object-fit: cover; }
+        .nav-item { padding: 15px; margin-top: 10px; border-radius: 10px; cursor: pointer; text-align: center; background: rgba(255,255,255,0.5); font-weight: bold; transition: 0.3s; }
+        .nav-item:hover { background: var(--olive-main); }
+        .active-nav { background: var(--green-dark) !important; color: white; }
+        .main-content { padding: 80px 40px 40px 40px; width: 100%; }
+
+        /* --- الكروت والشبكة --- */
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 15px; border: 1px solid var(--gray-light); text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .reviews-box { display: none; background: #f9f9f9; padding: 15px; border-radius: 8px; margin-top: 10px; font-size: 13px; border: 1px solid #eee; max-height: 200px; overflow-y: auto; }
+        .review-item { border-bottom: 1px solid #eee; padding: 8px 0; }
+        .review-item:last-child { border-bottom: none; }
+        .student-name { font-weight: bold; color: var(--green-dark); font-size: 12px; }
+        
+        .page { display: none; animation: fadeIn 0.5s; }
+        .active-page { display: block; }
+        .card-page { background: white; padding: 35px; border-radius: 15px; border: 1px solid #eee; max-width: 600px; margin: 0 auto; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .overlay { display: none; position: fixed; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 1400; top: 0; left: 0; }
+        
+        .link-text { display: block; margin-top: 10px; font-size: 13px; color: var(--green-dark); cursor: pointer; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div id="menuBtn" onclick="toggleSidebar()">☰</div>
+    <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+
+    <!-- واجهة تسجيل الدخول -->
+    <div id="authSection">
+        <div class="auth-card">
+            <div class="auth-content">
+                <div id="loginBox" class="auth-box active-box">
+                    <h2>تسجيل الدخول</h2>
+                    <input type="text" id="loginName" placeholder="الاسم الكامل">
+                    <input type="text" id="loginId" placeholder="الرقم الجامعي (7 أرقام)" maxlength="7">
+                    <input type="password" id="loginPass" placeholder="كلمة المرور (5 أرقام)" maxlength="5">
+                    <button class="btn-auth" onclick="validateLogin()">دخول</button>
+                    <span class="link-text" onclick="forgotPass()">هل نسيت كلمة المرور؟</span>
+                    <span class="link-text" onclick="toggleAuth('signupBox')" style="font-weight:bold;">إنشاء حساب جديد</span>
+                </div>
+                <div id="signupBox" class="auth-box">
+                    <h2>إنشاء حساب جديد</h2>
+                    <input type="text" id="regName" placeholder="الاسم الكامل">
+                    <input type="text" id="regId" placeholder="الرقم الجامعي">
+                    <input type="password" id="regPass" placeholder="كلمة المرور">
+                    <button class="btn-auth" onclick="alert('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.'); toggleAuth('loginBox')">تأكيد التسجيل</button>
+                    <span class="link-text" onclick="toggleAuth('loginBox')">العودة لتسجيل الدخول</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- التطبيق الرئيسي -->
+    <div id="mainApp" style="display:none;">
+        <div class="sidebar" id="sidebar">
+            <div class="profile-img-container">
+                <!-- تم وضع شعار مشروعكم المسمى 2.jpeg كما في صورة image.png -->
+                <img src="2.jpeg" id="projectLogo" alt="Logo" onerror="this.src='https://via.placeholder.com/100'">
+            </div>
+            <h3 style="text-align:center;" id="welcomeName">مرحباً بك</h3>
+            <div class="nav-item active-nav" id="navHome" onclick="showPage('home', this)">🏠 الرئيسية</div>
+            <div id="navDocs" class="nav-item" onclick="showPage('docs', this)">📄 تقديم الوثائق</div>
+            <div class="nav-item" id="navReview" onclick="showPage('review', this)">⭐ تقييمي الشخصي</div>
+            <div class="nav-item" style="margin-top:50px; color:#c0392b;" onclick="location.reload()">🚪 تسجيل خروج</div>
+        </div>
+
+        <div class="main-content">
+            <div id="home" class="page active-page">
+                <h1>مراكز التدريب والتقييمات</h1>
+                <input type="text" id="searchInput" onkeyup="filterCompanies()" placeholder="🔍 ابحث عن اسم جهة التدريب...">
+                <div class="grid-3" id="companiesGrid"></div>
+            </div>
+
+            <div id="docs" class="page">
+                <div class="card-page">
+                    <h2>تقديم الوثائق</h2>
+                    <p>يرجى رفع ملفات التدريب بصيغة PDF</p>
+                    <input type="text" id="docNameDisplay" readonly>
+                    <input type="file" id="docFile" accept=".pdf">
+                    <button class="btn-auth" onclick="submitDocs()">إرسال المستندات للمراجعة</button>
+                </div>
+            </div>
+
+            <div id="review" class="page">
+                <div class="card-page">
+                    <h2>نشر تقييمك الشخصي</h2>
+                    <select id="revComp">
+                        <option value="">اختر جهة التدريب</option>
+                        <option>أرامكو السعودية</option>
+                        <option>سدايا SDAIA</option>
+                        <option>شركة علم Elm</option>
+                        <option>نيوم NEOM</option>
+                        <option>شركة STC</option>
+                        <option>البنك المركزي السعودي</option>
+                        <option>وزارة الدفاع</option>
+                        <option>مستشفى الحرس الوطني</option>
+                        <option>شركة سابك SABIC</option>
+                    </select>
+                    <div class="star-rating">
+                        <input type="radio" name="stars" id="star5" value="5"><label for="star5">★</label>
+                        <input type="radio" name="stars" id="star4" value="4"><label for="star4">★</label>
+                        <input type="radio" name="stars" id="star3" value="3"><label for="star3">★</label>
+                        <input type="radio" name="stars" id="star2" value="2"><label for="star2">★</label>
+                        <input type="radio" name="stars" id="star1" value="1"><label for="star1">★</label>
+                    </div>
+                    <textarea id="revText" rows="4" placeholder="اكتب تعليقك هنا عن تجربة التدريب..."></textarea>
+                    <button class="btn-auth" onclick="publishReview()">نشر التقييم الآن</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = "";
+
+        const initialCompanies = [
+            { name: 'أرامكو السعودية', reviews: [
+                {name: "أحمد علي", stars: "⭐⭐⭐⭐⭐", text: "تجربة ممتازة جداً وبيئة عمل احترافية."},
+                {name: "سارة محمد", stars: "⭐⭐⭐", text: "التدريب مفيد لكن الموقع كان بعيد جداً ومتعب."}
+            ]},
+            { name: 'سدايا SDAIA', reviews: [
+                {name: "خالد منصور", stars: "⭐⭐⭐⭐⭐", text: "أفضل مكان لمتخصصي البيانات، استفدت الكثير."},
+                {name: "نورة فهد", stars: "⭐⭐⭐⭐", text: "بيئة رائعة ولكن ضغط العمل كبير."}
+            ]},
+            { name: 'شركة علم Elm', reviews: [
+                {name: "فيصل خالد", stars: "⭐⭐⭐⭐⭐", text: "ثقافة عمل مرنة ومحفزة جداً."},
+                {name: "ليلى حسن", stars: "⭐⭐", text: "لم يكن هناك توجيه واضح للمتدربين في قسمنا."}
+            ]},
+            { name: 'نيوم NEOM', reviews: [
+                {name: "عمر سعود", stars: "⭐⭐⭐⭐⭐", text: "مشاريع مستقبلية ملهمة، تجربة العمر."},
+                {name: "هند وليد", stars: "⭐⭐⭐", text: "صعوبة في السكن والمواصلات حالياً."}
+            ]},
+            { name: 'شركة STC', reviews: [
+                {name: "عبدالعزيز", stars: "⭐⭐⭐⭐", text: "تعلمت الكثير في أمن المعلومات."},
+                {name: "ريما", stars: "⭐⭐⭐⭐⭐", text: "المشرفين متعاونين جداً."}
+            ]},
+            { name: 'البنك المركزي السعودي', reviews: [
+                {name: "محمد إبراهيم", stars: "⭐⭐⭐⭐⭐", text: "انضباط عالي ودقة في المواعيد."},
+                {name: "سعد", stars: "⭐⭐⭐", text: "الإجراءات الأمنية كانت معقدة قليلاً."}
+            ]},
+            { name: 'وزارة الدفاع', reviews: [
+                {name: "سلطان", stars: "⭐⭐⭐⭐", text: "خبرة وطنية متميزة وانضباط."},
+                {name: "نواف", stars: "⭐⭐⭐⭐", text: "بيئة رسمية جداً ومفيدة."}
+            ]},
+            { name: 'مستشفى الحرس الوطني', reviews: [
+                {name: "اروى", stars: "⭐⭐⭐⭐", text: "أنظمة تقنية متطورة جداً."},
+                {name: "فهد", stars: "⭐⭐", text: "زحمة شديدة في قسم الحاسب."}
+            ]},
+            { name: 'شركة سابك SABIC', reviews: [
+                {name: "ياسر", stars: "⭐⭐⭐⭐⭐", text: "شركة عالمية بكل ما تعنيه الكلمة."},
+                {name: "مشعل", stars: "⭐⭐⭐⭐", text: "استفدت من الدورات التدريبية المرافقة."}
+            ]}
+        ];
+
+        let companies = JSON.parse(localStorage.getItem('trainingData')) || initialCompanies;
+
+        function validateLogin() {
+            const name = document.getElementById('loginName').value;
+            const id = document.getElementById('loginId').value;
+            const pass = document.getElementById('loginPass').value;
+
+            if (!name) { alert("الرجاء إدخال الاسم"); return; }
+            if (id.length !== 7) { alert("الرقم الجامعي يجب أن يكون 7 أرقام"); return; }
+            if (pass.length !== 5) { alert("كلمة المرور يجب أن تكون 5 أرقام"); return; }
+
+            currentUser = name;
+            document.getElementById('authSection').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('menuBtn').style.display = 'flex';
+            document.getElementById('welcomeName').innerText = "مرحباً، " + name;
+            document.getElementById('docNameDisplay').value = name;
+            render();
+        }
+
+        function forgotPass() {
+            const email = prompt("أدخل بريدك الجامعي لاستعادة كلمة المرور:");
+            if(email) alert("تم إرسال رابط إعادة التعيين إلى: " + email);
+        }
+
+        function publishReview() {
+            const compName = document.getElementById('revComp').value;
+            const text = document.getElementById('revText').value;
+            const starInput = document.querySelector('input[name="stars"]:checked');
+
+            if (!compName || !text || !starInput) {
+                alert("الرجاء إكمال التقييم واختيار النجوم");
+                return;
+            }
+
+            let starsStr = "";
+            for(let i=0; i<starInput.value; i++) starsStr += "⭐";
+
+            const compIndex = companies.findIndex(c => c.name === compName);
+            if (compIndex !== -1) {
+                companies[compIndex].reviews.unshift({
+                    name: currentUser,
+                    stars: starsStr,
+                    text: text
+                });
+                localStorage.setItem('trainingData', JSON.stringify(companies));
+                render();
+                alert("تم نشر تقييمك بنجاح!");
+                showPage('home', document.getElementById('navHome'));
+                document.getElementById('revText').value = "";
+                starInput.checked = false;
+            }
+        }
+
+        function render() {
+            const grid = document.getElementById('companiesGrid');
+            grid.innerHTML = companies.map((c, i) => {
+                const reviewHtml = c.reviews.map(r => `
+                    <div class="review-item">
+                        <span class="student-name">${r.name}</span> <span style="color:var(--gold)">${r.stars}</span>
+                        <p style="margin:5px 0 0 0;">${r.text}</p>
+                    </div>
+                `).join('');
+
+                return `
+                <div class="card company-card" data-name="${c.name}">
+                    <h3 style="margin-top:0;">${c.name}</h3>
+                    <div style="font-size:12px; color:#666;">عدد التقييمات: ${c.reviews.length}</div>
+                    <button class="btn-auth" style="padding:8px; font-size:12px; background:var(--olive-main); color:black;" onclick="toggleReview('rev${i}')">عرض تقييمات الطلاب</button>
+                    <div id="rev${i}" class="reviews-box">${reviewHtml}</div>
+                    <button class="btn-auth" style="background:var(--green-dark);" onclick="goToDocs()">التقديم على هذه الجهة</button>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function showPage(id, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+            document.getElementById(id).classList.add('active-page');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
+            el.classList.add('active-nav');
+            if(document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
+        }
+
+        function toggleSidebar() {
+            const s = document.getElementById('sidebar');
+            const o = document.getElementById('overlay');
+            s.classList.toggle('open');
+            o.style.display = s.classList.contains('open') ? 'block' : 'none';
+        }
+
+        function toggleReview(id) {
+            let b = document.getElementById(id);
+            b.style.display = (b.style.display === 'block') ? 'none' : 'block';
+        }
+
+        function filterCompanies() {
+            let val = document.getElementById('searchInput').value.toLowerCase();
+            let cards = document.getElementsByClassName('company-card');
+            for (let card of cards) {
+                card.style.display = card.getAttribute('data-name').includes(val) ? "block" : "none";
+            }
+        }
+
+        function toggleAuth(id) {
+            document.querySelectorAll('.auth-box').forEach(b => b.classList.remove('active-box'));
+            document.getElementById(id).classList.add('active-box');
+        }
+
+        function goToDocs() { showPage('docs', document.getElementById('navDocs')); }
+        function submitDocs() { alert("تم إرسال مستنداتك بنجاح، سيتم الرد عليك عبر البريد."); }
+    </script>
+</body>
+</html>
